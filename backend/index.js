@@ -2,53 +2,45 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const mongoose = require('mongoose');
-const { readdirSync, existsSync } = require('fs');
+const { readdirSync } = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
+// Middleware
 app.use(express.json());
 app.use(cors());
 
+// Connect to the Database
 const db = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URL, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+        await mongoose.connect(process.env.MONGO_URL);
         console.log('Database connected');
     } catch (error) {
         console.error('Database connection error:', error);
     }
 };
 
+// Load routes dynamically
 const loadRoutes = () => {
-    if (existsSync('./routes')) {
-        readdirSync('./routes').forEach((route) => {
-            app.use('/api/v1', require('./routes/' + route));
-        });
-    } else {
-        console.error('Routes folder does not exist');
-    }
+    readdirSync('./routes').forEach((route) => {
+        app.use('/api/v1', require('./routes/' + route));
+    });
 };
 
+// Initialize routes
 loadRoutes();
 
+// User authentication routes
 const AuthRouter = require('./routes/userRoutes');
 app.use('/api/v1/auth', AuthRouter);
 
+// Start the server
 const server = () => {
-    console.log('Connecting to database...');
     db();
-    
-    console.log('Starting server...');
     app.listen(PORT, () => {
         console.log(`Server running on port: ${PORT}`);
     });
 };
-
-if (process.env.NODE_ENV !== 'production') {
-    require('dotenv').config();
-}
 
 server();
